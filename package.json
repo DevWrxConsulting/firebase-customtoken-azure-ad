@@ -1,0 +1,29 @@
+{
+  "name": "firebase-customtoken-azure-ad",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc",
+    "build:production": "npm run prestart && npm prune --production",
+    "watch": "tsc --w",
+    "prestart": "npm run build && func extensions install",
+    "start:host": "func start",
+    "start": "npm-run-all --parallel start:host watch",
+    "test": "echo \"No tests yet...\""
+  },
+  "description": "Allows getting a firebase custom token allowing Azure AD Login",
+  "dependencies": {
+    "@types/jsonwebtoken": "^8.3.5",
+    "@types/request-promise": "^4.1.44",
+    "cors": "^2.8.5",
+    "firebase-admin": "^8.6.0",
+    "firebase-functions": "^3.3.0",
+    "jsonwebtoken": "^8.5.1",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.5"
+  },
+  "devDependencies": {
+    "@azure/functions": "^1.0.1-beta1",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^3.3.3"
+  }
+}
