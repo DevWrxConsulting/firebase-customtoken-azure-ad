@@ -23,17 +23,17 @@ let keys: Array<utils.MSOpenIdKey> = [];
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
     //cors(req, res, async () => {
         if (req.query && req.query.error) {
-            context.log('query and error:');
-            console.error(`Authentication request error from Azure AD: ${req.query.error_description}. Full details: ${JSON.stringify(req.query)}`);
+            context.log.info('query and error:');
+            context.log.error(`Authentication request error from Azure AD: ${req.query.error_description}. Full details: ${JSON.stringify(req.query)}`);
             context.res = {
                 status: 400,
                 body: `Oh oh, something went wrong. Please contact support with the following message: Invalid authentication request: ${req.query.error_description}`,
                 isRaw: true,
             };
         } else if (req.body && req.body.code) {
-            context.log('query and code:');
+            context.log.info('query and code:');
             const code = req.body.code;
-            context.log (`code:${code}`);
+            context.log.info(`code:${code}`);
             //POST here:
             var options = {
                 resolveWithFullResponse: true,
@@ -49,12 +49,12 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
                 }
             };
             const response = await rp(options);
-            context.log (`response:${response.body}`);
+            context.log.info(`response:${response.body}`);
             const body = JSON.parse(response.body);
             const redirectUrl = response.headers['Location'];
-            context.log (`redirectUrl:${redirectUrl}`);
+            context.log.info(`redirectUrl:${redirectUrl}`);
             const redirectToUrl = `${redirectUri}?id_token=${body.id_token}&access_token=${body.access_token}`
-            context.log (`redirectToUrl:${redirectToUrl}`);
+            context.log.info(`redirectToUrl:${redirectToUrl}`);
             context.res = {
                 status: 302,
                 headers: {
@@ -64,44 +64,52 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
             };
         } else if (req.query && req.query.access_token && req.query.id_token) {
             try {
-                context.log('query, access_token and id_token:');
+                context.log.info('query, access_token and id_token:');
                 const access_token = req.query.access_token;
                 const id_token = req.query.id_token;
                 const unverified_access_token: any = jwt.decode(access_token, { complete: true });
                 const unverified_id_token: any = jwt.decode(id_token, { complete: true });
-                context.log(`Unverified id_token decoding:`, JSON.stringify(id_token));
-                context.log(`Unverified access_token decoding:`, JSON.stringify(access_token));
+                context.log.info(`Unverified id_token decoding:`, JSON.stringify(id_token));
+                context.log.info(`Unverified access_token decoding:`, JSON.stringify(access_token));
                 if (!unverified_id_token || !unverified_id_token.payload || unverified_id_token.payload.iss !== issuerURI) {
-                    console.error(`Invalid unverified token (iss): ${unverified_id_token}.`);
+                    context.log.error(`Invalid unverified token (iss): ${unverified_id_token}.`);
                     throw new Error(`Invalid issuer.  Actual: ${unverified_id_token.payload.iss} Expected: ${issuerURI}`);
                 }
                 if (!unverified_id_token.header || unverified_id_token.header.alg !== "RS256" || !unverified_id_token.header.kid) {
+                    context.log.error(`Invalid header or algorithm on id_token.`);
                     throw new Error(`Invalid header or algorithm on id_token.`);
                 }
-                context.log('getting signature keys....');
-                const k = await utils.getSignatureKeys();
-                context.log('got signature keys!');
+                context.log.info('getting signature keys....');
+                const k = await utils.getSignatureKeys(context, tenantId);
+                context.log.info('got signature keys!');
                 const signatureKey = k.find((c => {
                     return c.kid === unverified_id_token.header.kid;
                 }));
                 if (!signatureKey) {
-                    throw new Error(`Signature used in id_token is not in the list of recognized keys: ${JSON.stringify(k)}`);
+                    context.log.info(`unverified_id_token.header.kid: ${unverified_id_token.header.kid}`);
+                    context.log.info('-----------------------------------------------------------------');
+                    context.log.info(`${JSON.stringify(k)}`);
+                    context.log.info('-----------------------------------------------------------------');
+                    context.log.info(`${JSON.stringify(k.map((key)=> key.kid))}`);
+                    context.log.info('-----------------------------------------------------------------');
+                    throw new Error(`Signature used in id_token is not in the list of recognized keys: `);
                 }
-                const user = await utils.verifyToken(id_token, signatureKey.x5c[0], issuerURI);
-                context.log (`user.uid:${user.uid}`);
+                context.log.info(`signature key is: ${signatureKey.x5c[0]}`);
+                const user = await utils.verifyToken(context, id_token, signatureKey.x5c[0], issuerURI);
+                context.log.info(`user.uid:${user.uid}`);
 
                 const customToken = await admin.auth().createCustomToken(user.uid);
-                context.log (`customToken:${customToken}`);
+                context.log.info(`customToken:${customToken}`);
                 const updatedUser = await admin.auth().updateUser(user.uid, {
                     displayName: user.displayName,
                     photoURL: 'https://s.gravatar.com/avatar/a6152a1821f6c67b0a243367a0c8ea15?s=80',
                 })
-                context.log('Successfully updated user', updatedUser.toJSON());
+                context.log.info('Successfully updated user', updatedUser.toJSON());
                 context.res = {
                     body: {customToken: customToken},
                 };
             } catch (err) {
-                console.error(`Failed to create custom token: ${err}`);
+                context.log.error(`Failed to create custom token: ${err}`);
                 context.res = {
                     status: 400,
                     body: `Oh oh, something went wrong. Please contact support with the following message: see the logs for more information.`,
