@@ -98,13 +98,10 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
                 const user = await utils.verifyToken(context, id_token, signatureKey.x5c[0], issuerURI);
                 context.log.info(`user.uid:${user.uid}`);
 
-                const customToken = await admin.auth().createCustomToken(user.uid);
+                context.log.info('creating custom token...');
+                const customToken = await admin.auth().createCustomToken(user.uid,);
                 context.log.info(`customToken:${customToken}`);
-                const updatedUser = await admin.auth().updateUser(user.uid, {
-                    displayName: user.displayName,
-                    photoURL: 'https://s.gravatar.com/avatar/a6152a1821f6c67b0a243367a0c8ea15?s=80',
-                })
-                context.log.info('Successfully updated user', updatedUser.toJSON());
+
                 context.res = {
                     body: {customToken: customToken},
                 };
