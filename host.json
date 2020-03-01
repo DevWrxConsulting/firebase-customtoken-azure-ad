@@ -4,5 +4,6 @@
         "console": {
             "isEnabled": "false"
         }
-    }
+    },
+    "watchDirectories": [ "Shared" ]
 }

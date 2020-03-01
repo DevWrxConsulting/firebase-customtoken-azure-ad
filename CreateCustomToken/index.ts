@@ -1,5 +1,5 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
-import * as utils from './utils';
+import * as utils from '../Shared/utils';
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as jwt from 'jsonwebtoken';

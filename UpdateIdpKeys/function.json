@@ -1,0 +1,11 @@
+{
+  "bindings": [
+    {
+      "name": "myTimer",
+      "type": "timerTrigger",
+      "direction": "in",
+      "schedule": "0 30 3 * * *"
+    }
+  ],
+  "scriptFile": "../dist/UpdateIdpKeys/index.js"
+}

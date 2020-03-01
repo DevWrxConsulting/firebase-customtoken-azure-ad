@@ -2,8 +2,8 @@ import { AzureFunction, Context, HttpRequest } from "@azure/functions";
 import * as jwt from 'jsonwebtoken';
 import * as rp from 'request-promise';
 import { isArray } from 'util';
-import * as fs from './firestore';
-import {User} from './user'
+import * as fs from '../CreateCustomToken/firestore';
+import {User} from '../CreateCustomToken/user'
 
 export interface MSOpenIdKey {
     kty: string;
@@ -50,7 +50,7 @@ export async function getKeysFromDB(context: Context): Promise<Array<MSOpenIdKey
  */
 export async function updateIdpKeys(context: Context, tenantId : String): Promise<Array<MSOpenIdKey>> {
     let keysUri =  `https://login.microsoftonline.com/${tenantId}/discovery/v2.0/keys`;
-    context.log.info ("keysUri: ${keysUri}");
+    context.log.info (`keysUri: ${keysUri}`);
     const data = await rp({ uri: keysUri, json: true });
     let keys: Array<MSOpenIdKey> = [];
     if (data && data.keys && isArray(data.keys) && data.keys.length > 0) {
